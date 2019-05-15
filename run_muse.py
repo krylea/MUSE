@@ -129,7 +129,7 @@ def run_model(params, file_name):
         outputs = ({"run": i,"seed": seed,"base_nn": base_nn, "base_csls": base_csls, "proc_nn": proc_nn, "proc_csls": proc_csls})
 
         outfile = open(file_name, 'a')
-        outfile.write("\t".join([k + ":" + str(v) for k, v in outputs[i].items()]) + "\n")
+        outfile.write("\t".join([k + ":" + str(v) for k, v in outputs.items()]) + "\n")
         outfile.close()
 
 
