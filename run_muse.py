@@ -109,7 +109,7 @@ def eval(trainer):
 
 def run_model(params, file_name):
     outfile = open(file_name, 'w')
-    outfile.write("%s TO %s RUNS 1 TO %d" % (params.src_lang, params.tgt_lang, params.n_trials))
+    outfile.write("%s TO %s RUNS 1 TO %d\n" % (params.src_lang.upper(), params.tgt_lang.upper(), params.n_trials))
     outfile.close()
 
     params.exp_name = params.src_lang + params.tgt_lang
@@ -129,7 +129,7 @@ def run_model(params, file_name):
         outputs = ({"run": i,"seed": seed,"base_nn": base_nn, "base_csls": base_csls, "proc_nn": proc_nn, "proc_csls": proc_csls})
 
         outfile = open(file_name, 'a')
-        outfile.write("\t".join([k + ":" + str(v) for k, v in outputs.items()]) + "\n")
+        outfile.write("\t".join([k + ": " + str(v) for k, v in outputs.items()]) + "\n")
         outfile.close()
 
 
