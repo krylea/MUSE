@@ -109,8 +109,10 @@ def eval(trainer):
 
 def run_model(params):
     params.exp_name = params.src_lang + params.tgt_lang
-    accuracies = []
+    outputs = []
     for i in range(params.n_trials):
+        seed = torch.randn()
+        params.seed = seed
         params.exp_id = str(i)
         # build model / trainer / evaluator
         logger = initialize_exp(params)
@@ -121,9 +123,9 @@ def run_model(params):
         base_nn, base_csls = _adversarial(logger, trainer, evaluator)
         proc_nn, proc_csls = _procrustes(logger, trainer, evaluator)
 
-        accuracies.append({"base_nn:": base_nn, "base_csls": base_csls, "proc_nn": proc_nn, "proc_csls": proc_csls})
+        outputs.append({"run": i,"seed": seed,"base_nn": base_nn, "base_csls": base_csls, "proc_nn": proc_nn, "proc_csls": proc_csls})
 
-    return accuracies
+    return outputs
 
 
 def _adversarial(logger, trainer, evaluator):
@@ -210,7 +212,6 @@ def _procrustes(logger, trainer, evaluator, iters=1):
 def save_output(file_name, accuracies):
     outfile = open(file_name, 'w')
     for i in range(len(accuracies)):
-        outfile.write("Run: %d"%i)
         outfile.write("\t".join([k+":"+str(v) for k,v in accuracies[i].items()]))
         outfile.write("\n")
 
