@@ -58,7 +58,7 @@ def parse_args():
     parser.add_argument("--min_lr", type=float, default=1e-6, help="Minimum learning rate (SGD only)")
     parser.add_argument("--lr_shrink", type=float, default=0.5, help="Shrink the learning rate if the validation metric decreases (1 to disable)")
     # training refinement
-    parser.add_argument("--n_refinement", type=int, default=5, help="Number of refinement iterations (0 to disable the refinement procedure)")
+    parser.add_argument("--n_refinement", type=int, default=0, help="Number of refinement iterations (0 to disable the refinement procedure)")
     # dictionary creation parameters (for refinement)
     parser.add_argument("--dico_eval", type=str, default="default", help="Path to evaluation dictionary")
     parser.add_argument("--dico_method", type=str, default='csls_knn_10', help="Method used for dictionary generation (nn/invsm_beta_30/csls_knn_10)")
