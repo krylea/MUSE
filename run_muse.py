@@ -102,7 +102,7 @@ def eval(trainer):
             method=method,
             dico_eval=trainer.params.dico_eval
         )
-        out.append(results)
+        out.append(results[0][1])
     return out
 
 
