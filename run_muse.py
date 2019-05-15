@@ -111,7 +111,7 @@ def run_model(params):
     params.exp_name = params.src_lang + params.tgt_lang
     outputs = []
     for i in range(params.n_trials):
-        seed = np.random.randn()
+        seed = np.random.randint(1, 1000)
         params.seed = seed
         params.exp_id = str(i)
         # build model / trainer / evaluator
