@@ -75,6 +75,7 @@ def parse_args():
     # parse parameters
     params = parser.parse_args()
 
+
     # check parameters
     assert not params.cuda or torch.cuda.is_available()
     assert 0 <= params.dis_dropout < 1
@@ -107,6 +108,7 @@ def eval(trainer):
 
 
 def run_model(params):
+    params.exp_name = params.src_lang + params.tgt_lang
     accuracies = []
     for i in range(params.n_trials):
         params.exp_id = str(i)
