@@ -107,11 +107,14 @@ def eval(trainer):
     return out
 
 
-def run_model(params):
+def run_model(params, file_name):
+    outfile = open(file_name, 'w')
+    outfile.write("%s TO %s RUNS 1 TO %d" % (params.src_lang, params.tgt_lang, params.n_trials))
+    outfile.close()
+
     params.exp_name = params.src_lang + params.tgt_lang
-    outputs = []
     for i in range(params.n_trials):
-        seed = np.random.randint(1, 1000)
+        seed = np.random.randint(10000, 20000)
         params.seed = seed
         params.exp_id = str(i)
         # build model / trainer / evaluator
@@ -123,9 +126,11 @@ def run_model(params):
         base_nn, base_csls = _adversarial(logger, trainer, evaluator)
         proc_nn, proc_csls = _procrustes(logger, trainer, evaluator)
 
-        outputs.append({"run": i,"seed": seed,"base_nn": base_nn, "base_csls": base_csls, "proc_nn": proc_nn, "proc_csls": proc_csls})
+        outputs = ({"run": i,"seed": seed,"base_nn": base_nn, "base_csls": base_csls, "proc_nn": proc_nn, "proc_csls": proc_csls})
 
-    return outputs
+        outfile = open(file_name, 'a')
+        outfile.write("\t".join([k + ":" + str(v) for k, v in outputs[i].items()]) + "\n")
+        outfile.close()
 
 
 def _adversarial(logger, trainer, evaluator):
@@ -214,11 +219,9 @@ def save_output(file_name, accuracies):
     for i in range(len(accuracies)):
         outfile.write("\t".join([k+":"+str(v) for k,v in accuracies[i].items()]))
         outfile.write("\n")
+    outfile.close()
 
 if __name__ == '__main__':
     params = parse_args()
-    accuracies = run_model(params)
-
     filename = params.out_file if params.out_file is not None else os.path.join(SAVE_DIR, params.src_lang + params.tgt_lang + "_MUSE.txt")
-
-    save_output(params.out_file, accuracies)
+    run_model(params, filename)
