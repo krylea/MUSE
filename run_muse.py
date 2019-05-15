@@ -109,7 +109,7 @@ def eval(trainer):
 def run_model(params):
     accuracies = []
     for i in range(params.n_trials):
-        params.exp_id = i
+        params.exp_id = str(i)
         # build model / trainer / evaluator
         logger = initialize_exp(params)
         src_emb, tgt_emb, mapping, discriminator = build_model(params, True)
