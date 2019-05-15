@@ -211,7 +211,7 @@ def save_output(file_name, accuracies):
     outfile = open(file_name, 'w')
     for i in range(len(accuracies)):
         outfile.write("Run: %d"%i)
-        outfile.write([k+":"+str(v)+"\t" for k,v in accuracies[i].items()])
+        outfile.write("\t".join([k+":"+str(v) for k,v in accuracies[i].items()]))
         outfile.write("\n")
 
 if __name__ == '__main__':
