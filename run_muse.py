@@ -105,76 +105,112 @@ def eval(trainer):
         out.append(results)
     return out
 
+
 def run_model(params):
     accuracies = []
-
     for i in range(params.n_trials):
-        accuracies.append([])
-
+        params.exp_id = i
         # build model / trainer / evaluator
         logger = initialize_exp(params)
         src_emb, tgt_emb, mapping, discriminator = build_model(params, True)
         trainer = Trainer(src_emb, tgt_emb, mapping, discriminator, params)
         evaluator = Evaluator(trainer)
 
-        for n_epoch in range(params.n_epochs):
-            logger.info('Starting adversarial training epoch %i...' % n_epoch)
-            tic = time.time()
-            n_words_proc = 0
-            stats = {'DIS_COSTS': []}
+        base_nn, base_csls = _adversarial(logger, trainer, evaluator)
+        proc_nn, proc_csls = _procrustes(logger, trainer, evaluator)
 
-            for n_iter in range(0, params.epoch_size, params.batch_size):
-
-                # discriminator training
-                for _ in range(params.dis_steps):
-                    trainer.dis_step(stats)
-
-                # mapping training (discriminator fooling)
-                n_words_proc += trainer.mapping_step(stats)
-
-                # log stats
-                if n_iter % 500 == 0:
-                    stats_str = [('DIS_COSTS', 'Discriminator loss')]
-                    stats_log = ['%s: %.4f' % (v, np.mean(stats[k]))
-                                 for k, v in stats_str if len(stats[k]) > 0]
-                    stats_log.append('%i samples/s' % int(n_words_proc / (time.time() - tic)))
-                    logger.info(('%06i - ' % n_iter) + ' - '.join(stats_log))
-
-                    # reset
-                    tic = time.time()
-                    n_words_proc = 0
-                    for k, _ in stats_str:
-                        del stats[k][:]
-
-            # embeddings / discriminator evaluation
-            to_log = OrderedDict({'n_epoch': n_epoch})
-            evaluator.all_eval(to_log)
-            evaluator.eval_dis(to_log)
-
-            # JSON log / save best model / end of epoch
-            logger.info("__log__:%s" % json.dumps(to_log))
-            #trainer.save_best(to_log, VALIDATION_METRIC)
-            logger.info('End of epoch %i.\n\n' % n_epoch)
-
-            # update the learning rate (stop if too small)
-            trainer.update_lr(to_log, VALIDATION_METRIC)
-            if trainer.map_optimizer.param_groups[0]['lr'] < params.min_lr:
-                logger.info('Learning rate < 1e-6. BREAK.')
-                break
-
-            nn, csls = eval(trainer)
-            accuracies[i].append({'nn':nn, 'csls':csls})
+        accuracies.append({"base_nn:": base_nn, "base_csls": base_csls, "proc_nn": proc_nn, "proc_csls": proc_csls})
 
     return accuracies
+
+
+def _adversarial(logger, trainer, evaluator):
+    best_val = 0
+    best_acc = 0
+    for n_epoch in range(params.n_epochs):
+        logger.info('Starting adversarial training epoch %i...' % n_epoch)
+        tic = time.time()
+        n_words_proc = 0
+        stats = {'DIS_COSTS': []}
+
+        for n_iter in range(0, params.epoch_size, params.batch_size):
+
+            # discriminator training
+            for _ in range(params.dis_steps):
+                trainer.dis_step(stats)
+
+            # mapping training (discriminator fooling)
+            n_words_proc += trainer.mapping_step(stats)
+
+            # log stats
+            if n_iter % 500 == 0:
+                stats_str = [('DIS_COSTS', 'Discriminator loss')]
+                stats_log = ['%s: %.4f' % (v, np.mean(stats[k]))
+                             for k, v in stats_str if len(stats[k]) > 0]
+                stats_log.append('%i samples/s' % int(n_words_proc / (time.time() - tic)))
+                logger.info(('%06i - ' % n_iter) + ' - '.join(stats_log))
+
+                # reset
+                tic = time.time()
+                n_words_proc = 0
+                for k, _ in stats_str:
+                    del stats[k][:]
+
+        # embeddings / discriminator evaluation
+        to_log = OrderedDict({'n_epoch': n_epoch})
+        evaluator.all_eval(to_log)
+        evaluator.eval_dis(to_log)
+
+        if to_log[VALIDATION_METRIC] > best_val:
+            best_acc = eval(trainer)
+
+        # JSON log / save best model / end of epoch
+        logger.info("__log__:%s" % json.dumps(to_log))
+        trainer.save_best(to_log, VALIDATION_METRIC)
+        logger.info('End of epoch %i.\n\n' % n_epoch)
+
+        # update the learning rate (stop if too small)
+        trainer.update_lr(to_log, VALIDATION_METRIC)
+        if trainer.map_optimizer.param_groups[0]['lr'] < params.min_lr:
+            logger.info('Learning rate < 1e-6. BREAK.')
+            break
+
+    return best_acc
+
+def _procrustes(logger, trainer, evaluator, iters=1):
+    # Get the best mapping according to VALIDATION_METRIC
+    logger.info('----> ITERATIVE PROCRUSTES REFINEMENT <----\n\n')
+    trainer.reload_best()
+
+    # training loop
+    for n_iter in range(iters):
+        logger.info('Starting refinement iteration %i...' % n_iter)
+
+        # build a dictionary from aligned embeddings
+        trainer.build_dictionary()
+
+        # apply the Procrustes solution
+        trainer.procrustes()
+
+        # embeddings evaluation
+        to_log = OrderedDict({'n_iter': n_iter})
+        evaluator.all_eval(to_log)
+
+        # JSON log / save best model / end of epoch
+        logger.info("__log__:%s" % json.dumps(to_log))
+        trainer.save_best(to_log, VALIDATION_METRIC)
+        logger.info('End of refinement iteration %i.\n\n' % n_iter)
+
+    best_acc = eval(trainer)
+    return best_acc
 
 
 def save_output(file_name, accuracies):
     outfile = open(file_name, 'w')
     for i in range(len(accuracies)):
-        outfile.write("Run: %d\n"%i)
-        for j in range(len(accuracies[i])):
-            nn, csls = accuracies[i][j]
-            outfile.write("Epoch: %d\tNN: %f\t CSLS: %f\n" % (j, nn, csls))
+        outfile.write("Run: %d"%i)
+        outfile.write([k+":"+str(v)+"\t" for k,v in accuracies[i].items()])
+        outfile.write("\n")
 
 if __name__ == '__main__':
     params = parse_args()
