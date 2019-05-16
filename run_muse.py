@@ -18,7 +18,8 @@ SAVE_DIR = "results"
 def parse_args():
     parser = argparse.ArgumentParser(description='Unsupervised training')
     # our args
-    parser.add_argument("--out_file", type=str, default=None, help="Output file")
+    parser.add_argument("--s2t_out", type=str, default=None, help="Output file")
+    parser.add_argument("--t2s_out", type=str, default=None, help="Output file")
     parser.add_argument("--n_trials", type=int, default=5, help="number of runs")
     # main
 
@@ -95,7 +96,8 @@ def set_default_args(params):
     params.src_emb = os.path.join(DATA_DIR, "wiki.%s.vec" % params.src_lang)
     params.tgt_emb = os.path.join(DATA_DIR, "wiki.%s.vec" % params.tgt_lang)
     params.dico_eval = os.path.join(DATA_DIR, "%s-%s.5000-6500.txt" % (params.src_lang, params.tgt_lang))
-    params.out_file = os.path.join(SAVE_DIR, params.src_lang + params.tgt_lang + "_MUSE.txt")
+    params.s2t_out = os.path.join(SAVE_DIR, params.src_lang + params.tgt_lang + "_MUSE.txt")
+    params.t2s_out = os.path.join(SAVE_DIR, params.src_lang + params.tgt_lang + "_MUSE.txt")
 
 def eval(trainer):
     src_emb = trainer.mapping(trainer.src_emb.weight).data
@@ -113,31 +115,55 @@ def eval(trainer):
     return out
 
 
-def run_model(params):
-    outfile = open(params.out_file, 'w')
+def joint_run(params):
+    src = params.src_lang
+    tgt = params.tgt_lang
+    for i in range(params.n_trials):
+        params.src_lang, params.tgt_lang = src, tgt
+        logger1, trainer1, evaluator1, seed1 = run_model(params, params.s2t_out, i)
+        base_nn_s2t, base_csls_s2t = _adversarial(logger1, trainer1, evaluator1)
+
+        params.src_lang, params.tgt_lang = tgt, src
+        logger2, trainer2, evaluator2, seed2 = run_model(params, params.t2s_out, i)
+        base_nn_t2s, base_csls_t2s = _adversarial(logger2, trainer2, evaluator2)
+
+        proc_nn_s2t, proc_csls_s2t, proc_nn_t2s, proc_csls_t2s = joint_procrustes(logger1, trainer1, evaluator1,
+                                                                                 logger2, trainer2, evaluator2)
+
+        outputs_s2t = {"run": i, "seed": seed1, "base_nn": base_nn_s2t, "base_csls": base_csls_s2t, "proc_nn": proc_nn_s2t,
+             "proc_csls": proc_csls_s2t}
+        outputs_t2s = {"run": i, "seed": seed2, "base_nn": base_nn_t2s, "base_csls": base_csls_t2s,
+                       "proc_nn": proc_nn_t2s, "proc_csls": proc_csls_t2s}
+
+        save_model(params.s2t_out, outputs_s2t)
+        save_model(params.t2s_out, outputs_t2s)
+
+
+def run_model(params, file, runid):
+    outfile = open(file, 'w')
     outfile.write("%s TO %s RUNS 1 TO %d\n" % (params.src_lang.upper(), params.tgt_lang.upper(), params.n_trials))
     outfile.close()
 
     params.exp_name = params.src_lang + params.tgt_lang
-    for i in range(params.n_trials):
-        seed = np.random.randint(10000, 20000)
-        params.seed = seed
-        params.exp_id = str(i)
-        params.exp_path = ''
-        # build model / trainer / evaluator
-        logger = initialize_exp(params)
-        src_emb, tgt_emb, mapping, discriminator = build_model(params, True)
-        trainer = Trainer(src_emb, tgt_emb, mapping, discriminator, params)
-        evaluator = Evaluator(trainer)
 
-        base_nn, base_csls = _adversarial(logger, trainer, evaluator)
-        proc_nn, proc_csls = _procrustes(logger, trainer, evaluator)
+    seed = np.random.randint(10000, 20000)
+    params.seed = seed
+    params.exp_id = str(runid)
+    params.exp_path = ''
+    # build model / trainer / evaluator
+    logger = initialize_exp(params)
+    src_emb, tgt_emb, mapping, discriminator = build_model(params, True)
+    trainer = Trainer(src_emb, tgt_emb, mapping, discriminator, params)
+    evaluator = Evaluator(trainer)
 
-        outputs = ({"run": i,"seed": seed,"base_nn": base_nn, "base_csls": base_csls, "proc_nn": proc_nn, "proc_csls": proc_csls})
+    #save_model(params, logger, trainer, evaluator, runid, seed)
 
-        outfile = open(params.out_file, 'a')
-        outfile.write("\t".join([k + ": " + str(v) for k, v in outputs.items()]) + "\n")
-        outfile.close()
+    return logger, trainer, evaluator, seed
+
+def save_model(file, scores):
+    outfile = open(file, 'a')
+    outfile.write("\t".join([k + ": " + str(v) for k, v in scores.items()]) + "\n")
+    outfile.close()
 
 
 def _adversarial(logger, trainer, evaluator):
@@ -194,7 +220,7 @@ def _adversarial(logger, trainer, evaluator):
 
     return best_acc
 
-def _procrustes(logger, trainer, evaluator, iters=1):
+def procrustes(logger, trainer, evaluator, dico=None, iters=1):
     # Get the best mapping according to VALIDATION_METRIC
     logger.info('----> ITERATIVE PROCRUSTES REFINEMENT <----\n\n')
     trainer.reload_best()
@@ -204,7 +230,10 @@ def _procrustes(logger, trainer, evaluator, iters=1):
         logger.info('Starting refinement iteration %i...' % n_iter)
 
         # build a dictionary from aligned embeddings
-        trainer.build_dictionary()
+        if n_iter == 0 and dico is not None:
+            trainer.dico = dico
+        else:
+            trainer.build_dictionary()
 
         # apply the Procrustes solution
         trainer.procrustes()
@@ -220,6 +249,35 @@ def _procrustes(logger, trainer, evaluator, iters=1):
 
     best_acc = eval(trainer)
     return best_acc
+
+
+def joint_dicts(t1, t2):
+    t1.build_dictionary()
+    t2.build_dictionary()
+    src_dico = t1.dico
+    tgt_dico = t2.dico
+
+    s2t_set = set([(a, b) for a, b in src_dico.cpu().numpy()])
+    t2s_set = set([(b, a) for a, b in tgt_dico.cpu().numpy()])
+
+    joint_set = s2t_set & t2s_set
+    joint_dico = torch.LongTensor(list([[int(a), int(b)] for (a, b) in joint_set]))
+    joint_dico = joint_dico.cuda()
+
+    joint_rev = joint_dico[:,[1,0]]
+
+    return src_dico, tgt_dico, joint_dico, joint_rev
+
+def joint_procrustes(l1, t1, e1, l2, t2, e2):
+    src, tgt, joint_src, joint_tgt = joint_dicts(t1, t2)
+
+    src_scores = procrustes(l1, t1, e1)
+    tgt_scores = procrustes(l2, t2, e2)
+    src_joint_scores = procrustes(l1, t1, e1,dico=joint_src)
+    tgt_joint_scores = procrustes(l2, t2, e2, dico=joint_tgt)
+
+    return src_scores, tgt_scores, src_joint_scores, tgt_joint_scores
+
 
 
 def save_output(file_name, accuracies):
