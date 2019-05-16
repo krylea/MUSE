@@ -172,6 +172,7 @@ def _adversarial(logger, trainer, evaluator):
         evaluator.eval_dis(to_log)
 
         if to_log[VALIDATION_METRIC] > best_val:
+            best_val = to_log[VALIDATION_METRIC]
             best_acc = eval(trainer)
 
         # JSON log / save best model / end of epoch
