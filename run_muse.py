@@ -117,6 +117,7 @@ def run_model(params, file_name):
         seed = np.random.randint(10000, 20000)
         params.seed = seed
         params.exp_id = str(i)
+        params.exp_path = ''
         # build model / trainer / evaluator
         logger = initialize_exp(params)
         src_emb, tgt_emb, mapping, discriminator = build_model(params, True)
