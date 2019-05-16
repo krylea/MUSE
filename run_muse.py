@@ -127,13 +127,13 @@ def joint_run(params):
         logger2, trainer2, evaluator2, seed2 = run_model(params, params.t2s_out, i)
         base_nn_t2s, base_csls_t2s = _adversarial(logger2, trainer2, evaluator2)
 
-        proc_nn_s2t, proc_csls_s2t, proc_nn_t2s, proc_csls_t2s = joint_procrustes(logger1, trainer1, evaluator1,
-                                                                                 logger2, trainer2, evaluator2)
+        (proc_nn_s2t, proc_csls_s2t), (proc_nn_t2s, proc_csls_t2s), (joint_proc_nn_s2t, joint_proc_csls_s2t), \
+        (joint_proc_nn_t2s, joint_proc_csls_t2s) = joint_procrustes(logger1, trainer1, evaluator1, logger2, trainer2, evaluator2)
 
         outputs_s2t = {"run": i, "seed": seed1, "base_nn": base_nn_s2t, "base_csls": base_csls_s2t, "proc_nn": proc_nn_s2t,
-             "proc_csls": proc_csls_s2t}
-        outputs_t2s = {"run": i, "seed": seed2, "base_nn": base_nn_t2s, "base_csls": base_csls_t2s,
-                       "proc_nn": proc_nn_t2s, "proc_csls": proc_csls_t2s}
+                       "proc_csls": proc_csls_s2t, 'joint_proc_nn': joint_proc_nn_s2t, 'joint_proc_csls': joint_proc_csls_s2t}
+        outputs_t2s = {"run": i, "seed": seed2, "base_nn": base_nn_t2s, "base_csls": base_csls_t2s, "proc_nn": proc_nn_t2s,
+                       "proc_csls": proc_csls_t2s, 'joint_proc_nn': joint_proc_nn_t2s, 'joint_proc_csls': joint_proc_csls_t2s}
 
         save_model(params.s2t_out, outputs_s2t)
         save_model(params.t2s_out, outputs_t2s)
