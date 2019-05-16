@@ -291,8 +291,4 @@ if __name__ == '__main__':
     params = parse_args()
 
     set_default_args(params)
-    run_model(params)
-
-    params.src_lang, params.tgt_lang = params.tgt_lang, params.src_lang
-    set_default_args(params)
-    run_model(params)
+    joint_run(params)
