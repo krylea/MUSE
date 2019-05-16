@@ -90,6 +90,12 @@ def parse_args():
 
     return params
 
+DATA_DIR = "data"
+def set_default_args(params):
+    params.src_emb = os.path.join(DATA_DIR, "wiki.%s.vec" % params.src_lang)
+    params.tgt_emb = os.path.join(DATA_DIR, "wiki.%s.vec" % params.tgt_lang)
+    params.dico_eval = os.path.join(DATA_DIR, "%s-%s.5000-6500.txt" % (params.src_lang, params.tgt_lang))
+    params.out_file = os.path.join(SAVE_DIR, params.src_lang + params.tgt_lang + "_MUSE.txt")
 
 def eval(trainer):
     src_emb = trainer.mapping(trainer.src_emb.weight).data
@@ -107,8 +113,8 @@ def eval(trainer):
     return out
 
 
-def run_model(params, file_name):
-    outfile = open(file_name, 'w')
+def run_model(params):
+    outfile = open(params.out_file, 'w')
     outfile.write("%s TO %s RUNS 1 TO %d\n" % (params.src_lang.upper(), params.tgt_lang.upper(), params.n_trials))
     outfile.close()
 
@@ -129,7 +135,7 @@ def run_model(params, file_name):
 
         outputs = ({"run": i,"seed": seed,"base_nn": base_nn, "base_csls": base_csls, "proc_nn": proc_nn, "proc_csls": proc_csls})
 
-        outfile = open(file_name, 'a')
+        outfile = open(params.out_file, 'a')
         outfile.write("\t".join([k + ": " + str(v) for k, v in outputs.items()]) + "\n")
         outfile.close()
 
@@ -225,5 +231,10 @@ def save_output(file_name, accuracies):
 
 if __name__ == '__main__':
     params = parse_args()
-    filename = params.out_file if params.out_file is not None else os.path.join(SAVE_DIR, params.src_lang + params.tgt_lang + "_MUSE.txt")
-    run_model(params, filename)
+
+    set_default_args(params)
+    run_model(params)
+
+    params.src_lang, params.tgt_lang = params.tgt_lang, params.src_lang
+    set_default_args(params)
+    run_model(params)
