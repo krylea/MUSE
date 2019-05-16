@@ -257,6 +257,9 @@ def joint_dicts(t1, t2):
     src_dico = t1.dico
     tgt_dico = t2.dico
 
+    import pdb;
+    pdb.set_trace()
+
     s2t_set = set([(a, b) for a, b in src_dico.cpu().numpy()])
     t2s_set = set([(b, a) for a, b in tgt_dico.cpu().numpy()])
 
