@@ -270,6 +270,8 @@ def joint_dicts(t1, t2):
     return src_dico, tgt_dico, joint_dico, joint_rev
 
 def joint_procrustes(l1, t1, e1, l2, t2, e2):
+    import pdb;pdb.set_trace()
+
     src, tgt, joint_src, joint_tgt = joint_dicts(t1, t2)
 
     src_scores = procrustes(l1, t1, e1)
