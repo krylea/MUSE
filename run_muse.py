@@ -133,7 +133,8 @@ def joint_run(s2t_params, t2s_params):
 
         (proc_nn_s2t, proc_csls_s2t), (proc_nn_t2s, proc_csls_t2s), (joint_proc_nn_s2t, joint_proc_csls_s2t), \
         (joint_proc_nn_t2s, joint_proc_csls_t2s) = joint_procrustes(s2t_logger, s2t_trainer1, s2t_evaluator,
-                                                                    t2s_logger, t2s_trainer1, t2s_evaluator)
+                                                                    t2s_logger, t2s_trainer1, t2s_evaluator,
+                                                                    iters=s2t_params.n_refinement)
 
         s2t_outputs["proc_nn"] = proc_nn_s2t
         s2t_outputs["proc_csls"] = proc_csls_s2t
@@ -278,7 +279,7 @@ def joint_dicts(t1, t2):
 
     return src_dico, tgt_dico, joint_dico, joint_rev
 
-def joint_procrustes(l1, t1, e1, l2, t2, e2, iters):
+def joint_procrustes(l1, t1, e1, l2, t2, e2, iters=5):
     import pdb;pdb.set_trace()
 
     src, tgt, joint_src, joint_tgt = joint_dicts(t1, t2)
