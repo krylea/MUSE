@@ -30,7 +30,7 @@ class Trainer(object):
         """
         self.src_emb = src_emb
         self.tgt_emb = tgt_emb
-        self.src_dico = getattr(params, 'tgt_dico', None)
+        self.src_dico = params.src_dico
         self.tgt_dico = getattr(params, 'tgt_dico', None)
         self.mapping = mapping
         self.discriminator = discriminator

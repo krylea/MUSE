@@ -125,7 +125,7 @@ def eval(trainer):
 def joint_run(s2t_params, t2s_params):
     for i in range(params.n_trials):
         s2t_logger, s2t_trainer1, s2t_evaluator, s2t_outputs = run_model(s2t_params, i)
-        t2s_logger, t2s_trainer1, t2s_evaluator, t2s_outputs = run_model(s2t_params, i)
+        t2s_logger, t2s_trainer1, t2s_evaluator, t2s_outputs = run_model(t2s_params, i)
 
 
         (proc_nn_s2t, proc_csls_s2t), (proc_nn_t2s, proc_csls_t2s), (joint_proc_nn_s2t, joint_proc_csls_s2t), \
@@ -192,7 +192,7 @@ def _adversarial(logger, trainer, evaluator):
             n_words_proc += trainer.mapping_step(stats)
 
             # log stats
-            if n_iter % 500 == 0:
+            if n_iter % 5000 == 0:
                 stats_str = [('DIS_COSTS', 'Discriminator loss')]
                 stats_log = ['%s: %.4f' % (v, np.mean(stats[k]))
                              for k, v in stats_str if len(stats[k]) > 0]
