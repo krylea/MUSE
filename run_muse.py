@@ -60,7 +60,7 @@ def parse_args():
     parser.add_argument("--min_lr", type=float, default=1e-6, help="Minimum learning rate (SGD only)")
     parser.add_argument("--lr_shrink", type=float, default=0.5, help="Shrink the learning rate if the validation metric decreases (1 to disable)")
     # training refinement
-    parser.add_argument("--n_refinement", type=int, default=0, help="Number of refinement iterations (0 to disable the refinement procedure)")
+    parser.add_argument("--n_refinement", type=int, default=5, help="Number of refinement iterations (0 to disable the refinement procedure)")
     # dictionary creation parameters (for refinement)
     parser.add_argument("--dico_eval", type=str, default="default", help="Path to evaluation dictionary")
     parser.add_argument("--dico_method", type=str, default='csls_knn_10', help="Method used for dictionary generation (nn/invsm_beta_30/csls_knn_10)")
@@ -230,7 +230,7 @@ def _adversarial(logger, trainer, evaluator):
 
     return best_acc
 
-def procrustes(logger, trainer, evaluator, dico=None, iters=1):
+def procrustes(logger, trainer, evaluator, dico=None, iters=5):
     # Get the best mapping according to VALIDATION_METRIC
     logger.info('----> ITERATIVE PROCRUSTES REFINEMENT <----\n\n')
     trainer.reload_best()
@@ -278,15 +278,15 @@ def joint_dicts(t1, t2):
 
     return src_dico, tgt_dico, joint_dico, joint_rev
 
-def joint_procrustes(l1, t1, e1, l2, t2, e2):
+def joint_procrustes(l1, t1, e1, l2, t2, e2, iters):
     import pdb;pdb.set_trace()
 
     src, tgt, joint_src, joint_tgt = joint_dicts(t1, t2)
 
-    src_scores = procrustes(l1, t1, e1, dico=src)
-    tgt_scores = procrustes(l2, t2, e2, dico=tgt)
-    src_joint_scores = procrustes(l1, t1, e1, dico=joint_src)
-    tgt_joint_scores = procrustes(l2, t2, e2, dico=joint_tgt)
+    src_scores = procrustes(l1, t1, e1, dico=src, iters=iters)
+    tgt_scores = procrustes(l2, t2, e2, dico=tgt, iters=iters)
+    src_joint_scores = procrustes(l1, t1, e1, dico=joint_src, iters=iters)
+    tgt_joint_scores = procrustes(l2, t2, e2, dico=joint_tgt, iters=iters)
 
     return src_scores, tgt_scores, src_joint_scores, tgt_joint_scores
 
