@@ -7,7 +7,9 @@ DATA_DIR = "data"
 
 def load_model(src_lang, tgt_lang, model_path):
     params = argparse.Namespace()
-    params.emb_dim=300
+    params.emb_dim = 300
+    params.max_vocab = 200000
+    params.cuda = True
     params.src_lang = src_lang
     params.tgt_lang = tgt_lang
     params.src_emb = os.path.join(DATA_DIR, "wiki.%s.vec" % params.src_lang)
