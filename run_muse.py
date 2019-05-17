@@ -97,7 +97,7 @@ def set_default_args(params):
     params.tgt_emb = os.path.join(DATA_DIR, "wiki.%s.vec" % params.tgt_lang)
     params.dico_eval = os.path.join(DATA_DIR, "%s-%s.5000-6500.txt" % (params.src_lang, params.tgt_lang))
     params.s2t_out = os.path.join(SAVE_DIR, params.src_lang + params.tgt_lang + "_MUSE.txt")
-    params.t2s_out = os.path.join(SAVE_DIR, params.src_lang + params.tgt_lang + "_MUSE.txt")
+    params.t2s_out = os.path.join(SAVE_DIR, params.tgt_lang + params.src_lang + "_MUSE.txt")
 
 def eval(trainer):
     src_emb = trainer.mapping(trainer.src_emb.weight).data
@@ -118,13 +118,19 @@ def eval(trainer):
 def joint_run(params):
     src = params.src_lang
     tgt = params.tgt_lang
+    outfile = open(params.s2t_out, 'w')
+    outfile.write("%s TO %s RUNS 1 TO %d\n" % (src.upper(), tgt.upper(), params.n_trials))
+    outfile.close()
+    outfile = open(params.t2s_out, 'w')
+    outfile.write("%s TO %s RUNS 1 TO %d\n" % (tgt.upper(), src.upper(), params.n_trials))
+    outfile.close()
     for i in range(params.n_trials):
         params.src_lang, params.tgt_lang = src, tgt
-        logger1, trainer1, evaluator1, seed1 = run_model(params, params.s2t_out, i)
+        logger1, trainer1, evaluator1, seed1 = run_model(params, i)
         base_nn_s2t, base_csls_s2t = _adversarial(logger1, trainer1, evaluator1)
 
         params.src_lang, params.tgt_lang = tgt, src
-        logger2, trainer2, evaluator2, seed2 = run_model(params, params.t2s_out, i)
+        logger2, trainer2, evaluator2, seed2 = run_model(params, i)
         base_nn_t2s, base_csls_t2s = _adversarial(logger2, trainer2, evaluator2)
 
         (proc_nn_s2t, proc_csls_s2t), (proc_nn_t2s, proc_csls_t2s), (joint_proc_nn_s2t, joint_proc_csls_s2t), \
@@ -139,13 +145,8 @@ def joint_run(params):
         save_model(params.t2s_out, outputs_t2s)
 
 
-def run_model(params, file, runid):
-    outfile = open(file, 'w')
-    outfile.write("%s TO %s RUNS 1 TO %d\n" % (params.src_lang.upper(), params.tgt_lang.upper(), params.n_trials))
-    outfile.close()
-
+def run_model(params, runid):
     params.exp_name = params.src_lang + params.tgt_lang
-
     seed = np.random.randint(10000, 20000)
     params.seed = seed
     params.exp_id = str(runid)
@@ -273,7 +274,7 @@ def joint_procrustes(l1, t1, e1, l2, t2, e2):
 
     src_scores = procrustes(l1, t1, e1)
     tgt_scores = procrustes(l2, t2, e2)
-    src_joint_scores = procrustes(l1, t1, e1,dico=joint_src)
+    src_joint_scores = procrustes(l1, t1, e1, dico=joint_src)
     tgt_joint_scores = procrustes(l2, t2, e2, dico=joint_tgt)
 
     return src_scores, tgt_scores, src_joint_scores, tgt_joint_scores
