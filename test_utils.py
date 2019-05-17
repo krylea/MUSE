@@ -17,7 +17,7 @@ def load_model(src_lang, tgt_lang, model_path):
     params.dico_eval = os.path.join(DATA_DIR, "%s-%s.5000-6500.txt" % (params.src_lang, params.tgt_lang))
     params.normalize_embeddings = ""
 
-    src_emb, tgt_emb, mapping, discriminator = build_model(params, True)
+    src_emb, tgt_emb, mapping, discriminator = build_model(params, False)
     trainer = Trainer(src_emb, tgt_emb, mapping, discriminator, params)
 
     #load mapping
