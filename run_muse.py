@@ -5,6 +5,7 @@ import argparse
 from collections import OrderedDict
 import numpy as np
 import torch
+import copy
 
 from src.utils import bool_flag, initialize_exp
 from src.models import build_model
@@ -96,8 +97,14 @@ def set_default_args(params):
     params.src_emb = os.path.join(DATA_DIR, "wiki.%s.vec" % params.src_lang)
     params.tgt_emb = os.path.join(DATA_DIR, "wiki.%s.vec" % params.tgt_lang)
     params.dico_eval = os.path.join(DATA_DIR, "%s-%s.5000-6500.txt" % (params.src_lang, params.tgt_lang))
-    params.s2t_out = os.path.join(SAVE_DIR, params.src_lang + params.tgt_lang + "_MUSE.txt")
-    params.t2s_out = os.path.join(SAVE_DIR, params.tgt_lang + params.src_lang + "_MUSE.txt")
+    params.out_file = os.path.join(SAVE_DIR, params.src_lang + params.tgt_lang + "_MUSE.txt")
+
+    params2 = copy.deepcopy(params)
+    params2.src_emb, params2.tgt_emb = params.tgt_emb, params.src_emb
+    params2.dico_eval = os.path.join(DATA_DIR, "%s-%s.5000-6500.txt" % (params2.src_lang, params2.tgt_lang))
+    params2.out_file = os.path.join(SAVE_DIR, params2.src_lang + params2.tgt_lang + "_MUSE.txt")
+
+    return params, params2
 
 def eval(trainer):
     src_emb = trainer.mapping(trainer.src_emb.weight).data
@@ -115,37 +122,34 @@ def eval(trainer):
     return out
 
 
-def joint_run(params):
-    src = params.src_lang
-    tgt = params.tgt_lang
-    outfile = open(params.s2t_out, 'w')
-    outfile.write("%s TO %s RUNS 1 TO %d\n" % (src.upper(), tgt.upper(), params.n_trials))
-    outfile.close()
-    outfile = open(params.t2s_out, 'w')
-    outfile.write("%s TO %s RUNS 1 TO %d\n" % (tgt.upper(), src.upper(), params.n_trials))
-    outfile.close()
+def joint_run(s2t_params, t2s_params):
     for i in range(params.n_trials):
-        params.src_lang, params.tgt_lang = src, tgt
-        logger1, trainer1, evaluator1, seed1 = run_model(params, i)
-        base_nn_s2t, base_csls_s2t = _adversarial(logger1, trainer1, evaluator1)
+        s2t_logger, s2t_trainer1, s2t_evaluator, s2t_outputs = run_model(s2t_params, i)
+        t2s_logger, t2s_trainer1, t2s_evaluator, t2s_outputs = run_model(s2t_params, i)
 
-        params.src_lang, params.tgt_lang = tgt, src
-        logger2, trainer2, evaluator2, seed2 = run_model(params, i)
-        base_nn_t2s, base_csls_t2s = _adversarial(logger2, trainer2, evaluator2)
 
         (proc_nn_s2t, proc_csls_s2t), (proc_nn_t2s, proc_csls_t2s), (joint_proc_nn_s2t, joint_proc_csls_s2t), \
-        (joint_proc_nn_t2s, joint_proc_csls_t2s) = joint_procrustes(logger1, trainer1, evaluator1, logger2, trainer2, evaluator2)
+        (joint_proc_nn_t2s, joint_proc_csls_t2s) = joint_procrustes(s2t_logger, s2t_trainer1, s2t_evaluator,
+                                                                    t2s_logger, t2s_trainer1, t2s_evaluator)
 
-        outputs_s2t = {"run": i, "seed": seed1, "base_nn": base_nn_s2t, "base_csls": base_csls_s2t, "proc_nn": proc_nn_s2t,
-                       "proc_csls": proc_csls_s2t, 'joint_proc_nn': joint_proc_nn_s2t, 'joint_proc_csls': joint_proc_csls_s2t}
-        outputs_t2s = {"run": i, "seed": seed2, "base_nn": base_nn_t2s, "base_csls": base_csls_t2s, "proc_nn": proc_nn_t2s,
-                       "proc_csls": proc_csls_t2s, 'joint_proc_nn': joint_proc_nn_t2s, 'joint_proc_csls': joint_proc_csls_t2s}
+        s2t_outputs["proc_nn"] = proc_nn_s2t
+        s2t_outputs["proc_csls"] = proc_csls_s2t
+        s2t_outputs["joint_proc_nn"] = joint_proc_nn_s2t
+        s2t_outputs["joint_proc_csls"] = joint_proc_csls_s2t
+        t2s_outputs["proc_nn"] = proc_nn_t2s
+        t2s_outputs["proc_csls"] = proc_csls_t2s
+        t2s_outputs["joint_proc_nn"] = joint_proc_nn_t2s
+        t2s_outputs["joint_proc_csls"] = joint_proc_csls_t2s
 
-        save_model(params.s2t_out, outputs_s2t)
-        save_model(params.t2s_out, outputs_t2s)
+        save_model(s2t_params.out_file, s2t_outputs)
+        save_model(t2s_params.out_file, t2s_outputs)
 
 
 def run_model(params, runid):
+    outfile = open(params.s2t_out, 'w')
+    outfile.write("%s TO %s RUNS 1 TO %d\n" % (params.src_lang.upper(), params.src_lang.upper(), params.n_trials))
+    outfile.close()
+
     params.exp_name = params.src_lang + params.tgt_lang
     seed = np.random.randint(10000, 20000)
     params.seed = seed
@@ -157,9 +161,11 @@ def run_model(params, runid):
     trainer = Trainer(src_emb, tgt_emb, mapping, discriminator, params)
     evaluator = Evaluator(trainer)
 
-    #save_model(params, logger, trainer, evaluator, runid, seed)
+    base_nn, base_csls = _adversarial(logger, trainer, evaluator)
 
-    return logger, trainer, evaluator, seed
+    outputs = {"run": runid, "seed": seed, "base_nn": base_nn, "base_csls": base_csls}
+
+    return logger, trainer, evaluator, outputs
 
 def save_model(file, scores):
     outfile = open(file, 'a')
@@ -293,5 +299,5 @@ def save_output(file_name, accuracies):
 if __name__ == '__main__':
     params = parse_args()
 
-    set_default_args(params)
-    joint_run(params)
+    s2t_params, t2s_params = set_default_args(params)
+    joint_run(s2t_params, t2s_params)
