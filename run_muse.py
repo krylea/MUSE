@@ -151,7 +151,7 @@ def joint_run(s2t_params, t2s_params):
 
 def run_model(params, runid):
     outfile = open(params.out_file, 'w')
-    outfile.write("%s TO %s RUNS 1 TO %d\n" % (params.src_lang.upper(), params.src_lang.upper(), params.n_trials))
+    outfile.write("%s TO %s RUNS 1 TO %d\n" % (params.src_lang.upper(), params.tgt_lang.upper(), params.n_trials))
     outfile.close()
 
     params.exp_name = params.src_lang + params.tgt_lang
@@ -280,8 +280,6 @@ def joint_dicts(t1, t2):
     return src_dico, tgt_dico, joint_dico, joint_rev
 
 def joint_procrustes(l1, t1, e1, l2, t2, e2, iters=5):
-    import pdb;pdb.set_trace()
-
     src, tgt, joint_src, joint_tgt = joint_dicts(t1, t2)
 
     src_scores = procrustes(l1, t1, e1, dico=src, iters=iters)
