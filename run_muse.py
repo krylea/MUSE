@@ -146,7 +146,7 @@ def joint_run(s2t_params, t2s_params):
 
 
 def run_model(params, runid):
-    outfile = open(params.s2t_out, 'w')
+    outfile = open(params.out_file, 'w')
     outfile.write("%s TO %s RUNS 1 TO %d\n" % (params.src_lang.upper(), params.src_lang.upper(), params.n_trials))
     outfile.close()
 
