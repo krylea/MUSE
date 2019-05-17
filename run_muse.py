@@ -100,7 +100,10 @@ def set_default_args(params):
     params.out_file = os.path.join(SAVE_DIR, params.src_lang + params.tgt_lang + "_MUSE.txt")
 
     params2 = copy.deepcopy(params)
-    params2.src_emb, params2.tgt_emb = params.tgt_emb, params.src_emb
+    params2.src_lang, params2.tgt_lang = params.tgt_lang, params.src_lang
+    
+    params2.src_emb = os.path.join(DATA_DIR, "wiki.%s.vec" % params2.src_lang)
+    params2.tgt_emb = os.path.join(DATA_DIR, "wiki.%s.vec" % params2.tgt_lang)
     params2.dico_eval = os.path.join(DATA_DIR, "%s-%s.5000-6500.txt" % (params2.src_lang, params2.tgt_lang))
     params2.out_file = os.path.join(SAVE_DIR, params2.src_lang + params2.tgt_lang + "_MUSE.txt")
 
@@ -192,7 +195,7 @@ def _adversarial(logger, trainer, evaluator):
             n_words_proc += trainer.mapping_step(stats)
 
             # log stats
-            if n_iter % 5000 == 0:
+            if n_iter % 6250 == 0:
                 stats_str = [('DIS_COSTS', 'Discriminator loss')]
                 stats_log = ['%s: %.4f' % (v, np.mean(stats[k]))
                              for k, v in stats_str if len(stats[k]) > 0]
