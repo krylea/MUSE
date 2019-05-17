@@ -101,7 +101,7 @@ def set_default_args(params):
 
     params2 = copy.deepcopy(params)
     params2.src_lang, params2.tgt_lang = params.tgt_lang, params.src_lang
-    
+
     params2.src_emb = os.path.join(DATA_DIR, "wiki.%s.vec" % params2.src_lang)
     params2.tgt_emb = os.path.join(DATA_DIR, "wiki.%s.vec" % params2.tgt_lang)
     params2.dico_eval = os.path.join(DATA_DIR, "%s-%s.5000-6500.txt" % (params2.src_lang, params2.tgt_lang))
@@ -283,8 +283,8 @@ def joint_procrustes(l1, t1, e1, l2, t2, e2):
 
     src, tgt, joint_src, joint_tgt = joint_dicts(t1, t2)
 
-    src_scores = procrustes(l1, t1, e1)
-    tgt_scores = procrustes(l2, t2, e2)
+    src_scores = procrustes(l1, t1, e1, dico=src)
+    tgt_scores = procrustes(l2, t2, e2, dico=tgt)
     src_joint_scores = procrustes(l1, t1, e1, dico=joint_src)
     tgt_joint_scores = procrustes(l2, t2, e2, dico=joint_tgt)
 
