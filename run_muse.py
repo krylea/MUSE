@@ -252,12 +252,12 @@ def procrustes(logger, trainer, evaluator, dico=None, iters=5):
         trainer.procrustes()
 
         # embeddings evaluation
-        to_log = OrderedDict({'n_iter': n_iter})
-        evaluator.all_eval(to_log)
+        #to_log = OrderedDict({'n_iter': n_iter})
+        #evaluator.all_eval(to_log)
 
         # JSON log / save best model / end of epoch
-        logger.info("__log__:%s" % json.dumps(to_log))
-        trainer.save_best(to_log, VALIDATION_METRIC)
+        #logger.info("__log__:%s" % json.dumps(to_log))
+        #trainer.save_best(to_log, VALIDATION_METRIC)
         logger.info('End of refinement iteration %i.\n\n' % n_iter)
 
     best_acc = eval(trainer)
