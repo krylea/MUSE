@@ -126,6 +126,12 @@ def eval(trainer):
 
 
 def joint_run(s2t_params, t2s_params):
+    outfile = open(s2t_params.out_file, 'w')
+    outfile.write("%s TO %s RUNS 1 TO %d\n" % (s2t_params.src_lang.upper(), s2t_params.tgt_lang.upper(), s2t_params.n_trials))
+    outfile.close()
+    outfile = open(t2s_params.out_file, 'w')
+    outfile.write("%s TO %s RUNS 1 TO %d\n" % (t2s_params.src_lang.upper(), t2s_params.tgt_lang.upper(), t2s_params.n_trials))
+    outfile.close()
     for i in range(params.n_trials):
         s2t_logger, s2t_trainer1, s2t_evaluator, s2t_outputs = run_model(s2t_params, i)
         t2s_logger, t2s_trainer1, t2s_evaluator, t2s_outputs = run_model(t2s_params, i)
@@ -150,10 +156,6 @@ def joint_run(s2t_params, t2s_params):
 
 
 def run_model(params, runid):
-    outfile = open(params.out_file, 'w')
-    outfile.write("%s TO %s RUNS 1 TO %d\n" % (params.src_lang.upper(), params.tgt_lang.upper(), params.n_trials))
-    outfile.close()
-
     params.exp_name = params.src_lang + params.tgt_lang
     seed = np.random.randint(10000, 20000)
     params.seed = seed
