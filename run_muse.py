@@ -277,6 +277,8 @@ def joint_dicts(t1, t2):
     joint_dico = torch.LongTensor(list([[int(a), int(b)] for (a, b) in joint_set]))
     joint_dico = joint_dico.cuda()
 
+    if len(joint_dico.size()) < 2:
+        joint_dico = joint_dico.unsqueeze(1).expand(-1,2)
     joint_rev = joint_dico[:,[1,0]]
 
     return src_dico, tgt_dico, joint_dico, joint_rev
