@@ -125,7 +125,9 @@ def eval(trainer):
     return out
 
 
-def joint_run(s2t_params, t2s_params):
+def joint_run(s2t_params, t2s_params, s2t_out=None, t2s_out=None):
+    s2t_out = s2t_out if s2t_out is not None else s2t_params.out_file
+    t2s_out = t2s_out if t2s_out is not None else t2s_params.out_file
     outfile = open(s2t_params.out_file, 'w')
     outfile.write("%s TO %s RUNS 1 TO %d\n" % (s2t_params.src_lang.upper(), s2t_params.tgt_lang.upper(), s2t_params.n_trials))
     outfile.close()
@@ -304,4 +306,4 @@ if __name__ == '__main__':
     params = parse_args()
 
     s2t_params, t2s_params = set_default_args(params)
-    joint_run(s2t_params, t2s_params)
+    joint_run(s2t_params, t2s_params, params.s2t_out, params.t2s_out)
