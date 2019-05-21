@@ -156,7 +156,7 @@ def joint_run(s2t_params, t2s_params):
 
 
 def run_model(params, runid):
-    params.exp_name = params.src_lang + params.tgt_lang
+    params.exp_name = params.src_lang + params.tgt_lang if params.exp_name is None else params.exp_name
     seed = np.random.randint(10000, 20000)
     params.seed = seed
     params.exp_id = str(runid)
@@ -263,7 +263,6 @@ def procrustes(logger, trainer, evaluator, dico=None, iters=5):
     best_acc = eval(trainer)
     return best_acc
 
-
 def joint_dicts(t1, t2):
     t1.build_dictionary()
     t2.build_dictionary()
@@ -292,7 +291,6 @@ def joint_procrustes(l1, t1, e1, l2, t2, e2, iters=5):
     tgt_joint_scores = procrustes(l2, t2, e2, dico=joint_tgt, iters=iters)
 
     return src_scores, tgt_scores, src_joint_scores, tgt_joint_scores
-
 
 
 def save_output(file_name, accuracies):
