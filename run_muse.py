@@ -169,7 +169,7 @@ def run_model(params, runid):
     trainer = Trainer(src_emb, tgt_emb, mapping, discriminator, params)
     evaluator = Evaluator(trainer)
 
-    base_nn, base_csls = _adversarial(logger, trainer, evaluator)
+    base_nn, base_csls = _adversarial(params, logger, trainer, evaluator)
 
     outputs = {"run": runid, "seed": seed, "base_nn": base_nn, "base_csls": base_csls}
 
@@ -181,7 +181,7 @@ def save_model(file, scores):
     outfile.close()
 
 
-def _adversarial(logger, trainer, evaluator):
+def _adversarial(params, logger, trainer, evaluator):
     best_val = 0
     best_acc = 0
     for n_epoch in range(params.n_epochs):
